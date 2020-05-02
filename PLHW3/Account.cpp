@@ -35,7 +35,7 @@ Account::Account(int id, Transaction** const activity, int* monthly_activity_fre
     if (activity == nullptr || monthly_activity_frequency == nullptr) {
         
         _activity = nullptr;
-        _monthly_activity_frequency = nullptr;
+        _monthly_activity_frequency = _monthly_activity_frequency;
         _id = id;
         return;
     }
@@ -77,7 +77,13 @@ Account::~Account(){
 // copy constructor #1
 Account::Account(const Account& rhs){
 
-    if (this == &rhs || rhs._monthly_activity_frequency == nullptr || rhs._activity == nullptr) return;
+    if (this == &rhs) return;
+    else if (rhs._monthly_activity_frequency == nullptr || rhs._activity == nullptr){
+        _monthly_activity_frequency = nullptr;
+        _activity = nullptr;
+        _id = rhs._id;
+        return;
+    }
 
     _activity = new Transaction*[12];
     _monthly_activity_frequency = new int[12];
@@ -101,7 +107,13 @@ Account::Account(const Account& rhs){
 // copy constructor #2
 Account::Account(const Account& rhs, time_t start_date, time_t end_date) {
 
-    if (this == &rhs || rhs._monthly_activity_frequency == nullptr || rhs._activity == nullptr) return;
+    if (this == &rhs) return;
+    else if (rhs._monthly_activity_frequency == nullptr || rhs._activity == nullptr){
+        _activity = nullptr;
+        _id = rhs._id;
+        _monthly_activity_frequency = nullptr;
+        return;
+    }
 
     _activity = new Transaction*[12];
     _monthly_activity_frequency = new int[12];
@@ -111,7 +123,7 @@ Account::Account(const Account& rhs, time_t start_date, time_t end_date) {
 
         int transactionNumber = 0;
 
-        for (int j=0; j < rhs._monthly_activity_frequency[i]; j++) // if 0 transactions are done then loop won't be executed so no problem with nullptr.
+        for (int j=0; j < rhs._monthly_activity_frequency[i]; j++)
             if (rhs._activity[i][j] < end_date && rhs._activity[i][j] > start_date) transactionNumber++;
             
         if (transactionNumber == 0) {_activity[i] = nullptr; _monthly_activity_frequency[i] = 0; continue;}
@@ -201,24 +213,40 @@ Account& Account::operator+=(const Account& rhs){
 
     if (rhs._activity != nullptr && rhs._monthly_activity_frequency != nullptr){
 
+        bool null_check = _activity == nullptr ? true : false;
+
+        if (null_check) {_activity = new Transaction*[12]; _monthly_activity_frequency = new int[12];}
+
         for (int i=0; i < 12; i++){
 
-            int newTransNumber = _monthly_activity_frequency[i] + rhs._monthly_activity_frequency[i];
+            int newTransNumber = null_check ? rhs._monthly_activity_frequency[i] : _monthly_activity_frequency[i] + rhs._monthly_activity_frequency[i];
 
-            if (newTransNumber == 0) { _activity[i] = nullptr; _monthly_activity_frequency[i] = 0; continue;}
+            if (newTransNumber == 0) {
+
+                _activity[i] = nullptr;
+                _monthly_activity_frequency[i] = 0;
+                continue;
+            }
 
             Transaction* tmp = new Transaction[newTransNumber];
 
             for (int j=0; j < newTransNumber; j++){
                 
-                if (j < _monthly_activity_frequency[i]) tmp[j] = _activity[i][j];
-                else{
-                    int index = j - _monthly_activity_frequency[i];
-                    tmp[j] = rhs._activity[i][index];
+                if (!null_check){
+
+                    if (j < _monthly_activity_frequency[i]) tmp[j] = _activity[i][j];
+                    else{
+                        int index = j - _monthly_activity_frequency[i];
+                        tmp[j] = rhs._activity[i][index];
+                    }
                 }
+                else tmp[j] = rhs._activity[i][j];
+                
             }
 
-            delete [] _activity[i];
+            if (!null_check)
+                delete [] _activity[i];
+            
             sort(tmp, newTransNumber);
             _activity[i] = tmp;
             _monthly_activity_frequency[i] = newTransNumber;
